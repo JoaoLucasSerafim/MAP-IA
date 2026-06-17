@@ -1,0 +1,639 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Calculadora de Funções e Gráficos — Minimalista</title>
+<style>
+  :root{
+    --bg:#0f1724;
+    --card:#0b1220;
+    --accent:#ffb703;
+    --muted:#94a3b8;
+    --glass: rgba(255,255,255,0.03);
+    --glass-2: rgba(255,255,255,0.02);
+    --success:#16a34a;
+    --danger:#ef4444;
+    --glass-border: rgba(255,255,255,0.04);
+    font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  }
+  html,body{height:100%;margin:0;background:linear-gradient(180deg,var(--bg),#071026 120%);color:#e6eef8}
+  .wrap{
+    max-width:1100px;margin:28px auto;padding:28px;border-radius:14px;
+    background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+    box-shadow: 0 6px 30px rgba(2,6,23,0.7);
+    border:1px solid var(--glass-border);
+    display:grid;grid-template-columns:420px 1fr;gap:22px;align-items:start;
+  }
+
+  /* Header / hero */
+  .hero{
+    grid-column:1 / -1;display:flex;gap:18px;align-items:center;
+  }
+  .logo{
+    width:84px;height:84px;border-radius:12px;background:linear-gradient(135deg,var(--accent),#ff6b6b);
+    display:flex;align-items:center;justify-content:center;font-weight:700;color:#071026;font-size:22px;box-shadow:0 6px 18px rgba(255,183,3,0.12);
+  }
+  h1{margin:0;font-size:20px;letter-spacing:0.2px}
+  p.lead{margin:0;color:var(--muted);font-size:13px}
+
+  /* Left column */
+  .card{
+    background:linear-gradient(180deg,var(--card),var(--glass));
+    padding:18px;border-radius:12px;border:1px solid var(--glass-border);
+  }
+  .controls{display:flex;flex-direction:column;gap:12px}
+  label{font-size:13px;color:var(--muted);display:block;margin-bottom:6px}
+  input[type="number"]{
+    width:100%;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.03);
+    background:transparent;color:inherit;font-size:15px;outline:none;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,0.01);
+  }
+  .row{display:flex;gap:10px}
+  .small{flex:1}
+  .btns{display:flex;gap:10px;flex-wrap:wrap}
+  button.btn{
+    background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+    color:var(--accent);border:1px solid rgba(255,255,255,0.03);padding:10px 12px;border-radius:10px;
+    cursor:pointer;font-weight:600;letter-spacing:0.2px;transition:all .18s;backdrop-filter: blur(6px);
+  }
+  button.btn:hover{transform:translateY(-3px);box-shadow:0 10px 30px rgba(0,0,0,0.5)}
+  button.ghost{background:transparent;color:var(--muted);border:1px dashed rgba(255,255,255,0.03)}
+  .fancy{
+    background:linear-gradient(90deg,#7c3aed,#06b6d4);color:white;border:none;padding:10px 14px;border-radius:12px;
+    box-shadow:0 8px 30px rgba(6,182,212,0.12);font-weight:700;
+  }
+
+  /* Right column */
+  .visual{
+    display:flex;flex-direction:column;gap:14px;
+  }
+  .canvas-wrap{position:relative;border-radius:12px;overflow:hidden;border:1px solid var(--glass-border)}
+  canvas{width:100%;height:420px;display:block;background:linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.00))}
+  .info{
+    display:flex;gap:12px;flex-wrap:wrap;align-items:center;
+  }
+  .chip{background:var(--glass-2);padding:8px 10px;border-radius:10px;border:1px solid rgba(255,255,255,0.02);font-size:13px;color:var(--muted)}
+  .result{font-size:14px;color:#dbeafe;padding:10px;border-radius:10px;background:linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.00));border:1px solid rgba(255,255,255,0.02)}
+
+  /* Trophy / illustration area */
+  .illustration{
+    display:flex;align-items:center;justify-content:center;padding:18px;border-radius:12px;background:linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.00));
+    border:1px solid rgba(255,255,255,0.02);
+  }
+  .caption{font-size:12px;color:var(--muted);text-align:center;margin-top:8px}
+
+  /* Footer small */
+  .meta{grid-column:1 / -1;display:flex;justify-content:space-between;align-items:center;color:var(--muted);font-size:13px;padding-top:6px}
+  .toggle{display:inline-flex;align-items:center;gap:8px}
+
+  /* Responsive */
+  @media (max-width:980px){
+    .wrap{grid-template-columns:1fr; padding:16px}
+    .hero{flex-direction:column;align-items:flex-start;gap:8px}
+    .canvas-wrap canvas{height:320px}
+  }
+
+  /* Animated buttons and micro-interactions */
+  .btn[data-anim="pulse"]{position:relative;overflow:hidden}
+  .btn[data-anim="pulse"]::after{
+    content:"";position:absolute;inset:0;border-radius:inherit;box-shadow:0 0 0 0 rgba(255,183,3,0.12);animation: pulse 2.6s infinite;
+  }
+  @keyframes pulse{
+    0%{box-shadow:0 0 0 0 rgba(255,183,3,0.06)}
+    70%{box-shadow:0 0 0 18px rgba(255,183,3,0.00)}
+    100%{box-shadow:0 0 0 0 rgba(255,183,3,0.00)}
+  }
+
+  /* subtle tooltip */
+  .hint{font-size:12px;color:var(--muted)}
+</style>
+</head>
+<body>
+  <main class="wrap" role="main" aria-labelledby="title">
+    <header class="hero">
+      <div class="logo">ƒx</div>
+      <div>
+        <h1 id="title">Calculadora de Funções e Gráficos — 1º e 2º Grau</h1>
+        <p class="lead">Minimalista, interativo e com visual elegante. Insira coeficientes, veja raízes, vértice e gráfico em tempo real.</p>
+      </div>
+    </header>
+
+    <!-- Left column: controls -->
+    <section class="card" aria-label="Controles">
+      <h2 style="font-size:15px;margin:0 0 12px 0">Entradas</h2>
+      <div class="controls">
+        <div>
+          <label>Função de 2º grau (ax² + bx + c)</label>
+          <div class="row">
+            <div class="small">
+              <input id="a" type="number" step="any" value="1" aria-label="a coeficiente" />
+            </div>
+            <div class="small">
+              <input id="b" type="number" step="any" value="0" aria-label="b coeficiente" />
+            </div>
+            <div class="small">
+              <input id="c" type="number" step="any" value="0" aria-label="c coeficiente" />
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:8px">
+            <div class="hint" style="width:100%;font-size:12px;color:var(--muted)">Digite a, b e c. Use ponto para decimais.</div>
+          </div>
+        </div>
+
+        <div>
+          <label>Função de 1º grau (m·x + q)</label>
+          <div class="row">
+            <div class="small">
+              <input id="m" type="number" step="any" value="1" aria-label="m coeficiente" />
+            </div>
+            <div class="small">
+              <input id="q" type="number" step="any" value="0" aria-label="q coeficiente" />
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:10px;align-items:center;justify-content:space-between">
+          <div class="btns" role="toolbar" aria-label="Ações">
+            <button id="plot" class="btn fancy" title="Plotar funções" data-anim="pulse">Plotar</button>
+            <button id="clear" class="btn ghost" title="Limpar gráfico">Limpar</button>
+            <button id="animate" class="btn" title="Animar troféu">Animar troféu</button>
+            <button id="toggleGrid" class="btn" title="Alternar grade">Grade</button>
+            <button id="showSteps" class="btn" title="Mostrar passos">Mostrar passos</button>
+          </div>
+          <div style="text-align:right">
+            <div class="chip">Modo: <strong id="modeLabel">Quadrática</strong></div>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:10px">
+          <button id="theme" class="btn">Alternar Tema</button>
+          <button id="reset" class="btn ghost">Resetar Valores</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Right column: visualization -->
+    <section class="visual">
+      <div class="card canvas-wrap" aria-label="Gráfico">
+        <canvas id="plotCanvas" width="800" height="420" role="img" aria-label="Gráfico das funções"></canvas>
+      </div>
+
+      <div class="card" style="display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap">
+        <div style="flex:1">
+          <div class="info">
+            <div class="chip">Δ: <span id="delta">—</span></div>
+            <div class="chip">Raízes: <span id="roots">—</span></div>
+            <div class="chip">Vértice: <span id="vertex">—</span></div>
+            <div class="chip">Interseção (1º grau): <span id="intersect">—</span></div>
+          </div>
+          <div style="margin-top:10px" class="result" id="steps" aria-live="polite">Resultados aparecerão aqui após plotar.</div>
+        </div>
+
+        <div style="width:260px">
+          <div class="illustration" id="illustration" aria-hidden="false">
+            <!-- Stylized SVG of a player lifting a trophy (minimal, non-photorealistic) -->
+            <svg id="playerSvg" width="220" height="160" viewBox="0 0 220 160" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Ilustração de jogador levantando troféu">
+              <defs>
+                <linearGradient id="g1" x1="0" x2="1">
+                  <stop offset="0" stop-color="#ffb703"/>
+                  <stop offset="1" stop-color="#ff6b6b"/>
+                </linearGradient>
+                <linearGradient id="g2" x1="0" x2="1">
+                  <stop offset="0" stop-color="#ffffff" stop-opacity="0.9"/>
+                  <stop offset="1" stop-color="#dbeafe" stop-opacity="0.6"/>
+                </linearGradient>
+                <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+                  <feGaussianBlur stdDeviation="6" result="b"/>
+                  <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+                </filter>
+              </defs>
+
+              <!-- Stadium lights / bokeh -->
+              <rect width="220" height="160" rx="12" fill="url(#g2)" opacity="0.04"/>
+              <g opacity="0.9" transform="translate(0,6)">
+                <circle cx="40" cy="20" r="8" fill="#ffffff" opacity="0.06"/>
+                <circle cx="180" cy="18" r="10" fill="#ffffff" opacity="0.06"/>
+                <circle cx="120" cy="8" r="6" fill="#ffffff" opacity="0.04"/>
+              </g>
+
+              <!-- Player body (stylized) -->
+              <g id="player" transform="translate(30,20)">
+                <ellipse cx="80" cy="110" rx="36" ry="10" fill="#071026" opacity="0.12"/>
+                <!-- legs -->
+                <path d="M60 90 L70 120 L80 120 L70 90 Z" fill="#0b1220" opacity="0.9"/>
+                <path d="M100 90 L110 120 L120 120 L110 90 Z" fill="#0b1220" opacity="0.9"/>
+                <!-- torso -->
+                <rect x="62" y="40" width="36" height="48" rx="8" fill="#c026d3" />
+                <!-- arms up -->
+                <path id="armL" d="M62 48 Q50 20 70 10" stroke="#c026d3" stroke-width="10" stroke-linecap="round" fill="none"/>
+                <path id="armR" d="M98 48 Q110 20 90 10" stroke="#c026d3" stroke-width="10" stroke-linecap="round" fill="none"/>
+                <!-- head -->
+                <circle cx="80" cy="26" r="12" fill="#fef3c7" stroke="#f1c40f" stroke-width="0.6"/>
+                <!-- hair -->
+                <path d="M72 20 Q80 12 88 20" fill="#2b2b2b"/>
+                <!-- trophy -->
+                <g id="trophy" transform="translate(70,-6)">
+                  <ellipse cx="20" cy="6" rx="18" ry="8" fill="url(#g1)" filter="url(#glow)"/>
+                  <rect x="12" y="6" width="16" height="28" rx="4" fill="url(#g1)"/>
+                  <rect x="14" y="34" width="12" height="6" rx="2" fill="#071026" opacity="0.12"/>
+                  <circle cx="20" cy="2" r="4" fill="#fff" opacity="0.6"/>
+                </g>
+                <!-- confetti -->
+                <g id="confetti" opacity="0.9">
+                  <rect x="10" y="10" width="3" height="6" fill="#ffd166" transform="rotate(12 11 13)"/>
+                  <rect x="180" y="30" width="3" height="6" fill="#06b6d4" transform="rotate(-20 181 33)"/>
+                  <rect x="150" y="8" width="3" height="6" fill="#ff6b6b" transform="rotate(30 151 11)"/>
+                </g>
+              </g>
+            </svg>
+          </div>
+          <div class="caption">Ilustração estilizada de <strong>Yuri Alberto</strong> levantando a Taça da Libertadores — versão minimalista.</div>
+        </div>
+      </div>
+    </section>
+
+    <div class="meta">
+      <div>Design minimalista • Interatividade em tempo real</div>
+      <div class="toggle">Dicas: <span style="margin-left:8px;color:var(--muted)">Use Plotar para atualizar; clique em Animar para celebrar</span></div>
+    </div>
+  </main>
+
+<script>
+/* Minimal, single-file JS: cálculo e plotagem */
+(() => {
+  const canvas = document.getElementById('plotCanvas');
+  const ctx = canvas.getContext('2d', {alpha:true});
+  let width = canvas.width, height = canvas.height;
+  const DPR = window.devicePixelRatio || 1;
+  canvas.width = width * DPR;
+  canvas.height = height * DPR;
+  canvas.style.width = width + 'px';
+  canvas.style.height = height + 'px';
+  ctx.scale(DPR, DPR);
+
+  // UI elements
+  const aEl = document.getElementById('a');
+  const bEl = document.getElementById('b');
+  const cEl = document.getElementById('c');
+  const mEl = document.getElementById('m');
+  const qEl = document.getElementById('q');
+  const plotBtn = document.getElementById('plot');
+  const clearBtn = document.getElementById('clear');
+  const deltaEl = document.getElementById('delta');
+  const rootsEl = document.getElementById('roots');
+  const vertexEl = document.getElementById('vertex');
+  const intersectEl = document.getElementById('intersect');
+  const stepsEl = document.getElementById('steps');
+  const toggleGridBtn = document.getElementById('toggleGrid');
+  const animateBtn = document.getElementById('animate');
+  const showStepsBtn = document.getElementById('showSteps');
+  const themeBtn = document.getElementById('theme');
+  const resetBtn = document.getElementById('reset');
+  const modeLabel = document.getElementById('modeLabel');
+  const playerSvg = document.getElementById('playerSvg');
+  const trophy = document.getElementById('trophy');
+
+  let showGrid = true;
+  let showSteps = false;
+  let themeDark = true;
+
+  // coordinate system
+  const view = { xMin:-10, xMax:10, yMin:-10, yMax:10 };
+
+  function toCanvasX(x){
+    const pad = 40;
+    return pad + (x - view.xMin) / (view.xMax - view.xMin) * (width - pad*2);
+  }
+  function toCanvasY(y){
+    const pad = 40;
+    return pad + (view.yMax - y) / (view.yMax - view.yMin) * (height - pad*2);
+  }
+
+  function clear(){
+    ctx.clearRect(0,0,width,height);
+    // subtle background
+    ctx.fillStyle = 'rgba(255,255,255,0.01)';
+    ctx.fillRect(0,0,width,height);
+  }
+
+  function drawGrid(){
+    const pad = 40;
+    ctx.save();
+    ctx.strokeStyle = 'rgba(255,255,255,0.03)';
+    ctx.lineWidth = 1;
+    // vertical lines
+    for(let x=Math.ceil(view.xMin); x<=Math.floor(view.xMax); x++){
+      const cx = toCanvasX(x);
+      ctx.beginPath();
+      ctx.moveTo(cx, pad);
+      ctx.lineTo(cx, height - pad);
+      ctx.stroke();
+    }
+    // horizontal
+    for(let y=Math.ceil(view.yMin); y<=Math.floor(view.yMax); y++){
+      const cy = toCanvasY(y);
+      ctx.beginPath();
+      ctx.moveTo(pad, cy);
+      ctx.lineTo(width - pad, cy);
+      ctx.stroke();
+    }
+    // axes
+    ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+    ctx.lineWidth = 1.6;
+    // x axis
+    if(view.yMin < 0 && view.yMax > 0){
+      ctx.beginPath(); ctx.moveTo(pad, toCanvasY(0)); ctx.lineTo(width - pad, toCanvasY(0)); ctx.stroke();
+    }
+    // y axis
+    if(view.xMin < 0 && view.xMax > 0){
+      ctx.beginPath(); ctx.moveTo(toCanvasX(0), pad); ctx.lineTo(toCanvasX(0), height - pad); ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  function plotFunctions(){
+    clear();
+    if(showGrid) drawGrid();
+
+    // read values
+    const a = parseFloat(aEl.value) || 0;
+    const b = parseFloat(bEl.value) || 0;
+    const c = parseFloat(cEl.value) || 0;
+    const m = parseFloat(mEl.value) || 0;
+    const q = parseFloat(qEl.value) || 0;
+
+    // quadratic: y = a x^2 + b x + c
+    // compute discriminant, roots, vertex
+    const delta = b*b - 4*a*c;
+    deltaEl.textContent = isFinite(delta) ? delta.toFixed(4) : '—';
+
+    let rootsText = '—';
+    let roots = [];
+    if(a === 0){
+      // degenerate: linear bx + c = 0
+      if(b !== 0){
+        const r = -c / b;
+        roots = [r];
+        rootsText = r.toFixed(4);
+      } else {
+        rootsText = 'Sem raízes definidas';
+      }
+    } else {
+      if(delta < 0){
+        rootsText = 'Não reais';
+      } else if(delta === 0){
+        const r = -b / (2*a);
+        roots = [r];
+        rootsText = r.toFixed(4);
+      } else {
+        const r1 = (-b + Math.sqrt(delta)) / (2*a);
+        const r2 = (-b - Math.sqrt(delta)) / (2*a);
+        roots = [r1, r2];
+        rootsText = r1.toFixed(4) + ' , ' + r2.toFixed(4);
+      }
+    }
+    rootsEl.textContent = rootsText;
+
+    // vertex
+    let vx = -b / (2*a);
+    let vy = a*vx*vx + b*vx + c;
+    if(!isFinite(vx) || !isFinite(vy) || a === 0){
+      vertexEl.textContent = '—';
+    } else {
+      vertexEl.textContent = '(' + vx.toFixed(3) + ' , ' + vy.toFixed(3) + ')';
+    }
+
+    // intersection between quadratic and linear: solve a x^2 + b x + c = m x + q => a x^2 + (b-m)x + (c-q) = 0
+    const A = a;
+    const B = b - m;
+    const C = c - q;
+    let interText = '—';
+    if(A === 0){
+      if(B !== 0){
+        const xi = -C / B;
+        interText = xi.toFixed(4);
+      } else {
+        interText = 'Paralelas/Idênticas';
+      }
+    } else {
+      const D2 = B*B - 4*A*C;
+      if(D2 < 0) interText = 'Sem interseção real';
+      else if(D2 === 0) interText = (-B/(2*A)).toFixed(4);
+      else {
+        const i1 = (-B + Math.sqrt(D2)) / (2*A);
+        const i2 = (-B - Math.sqrt(D2)) / (2*A);
+        interText = i1.toFixed(4) + ' , ' + i2.toFixed(4);
+      }
+    }
+    intersectEl.textContent = interText;
+
+    // draw quadratic curve
+    ctx.save();
+    ctx.lineWidth = 2.6;
+    // quadratic color
+    ctx.strokeStyle = '#7c3aed';
+    ctx.beginPath();
+    let first = true;
+    for(let px = 0; px <= width; px++){
+      const x = view.xMin + (px / width) * (view.xMax - view.xMin);
+      const y = a*x*x + b*x + c;
+      const cx = toCanvasX(x);
+      const cy = toCanvasY(y);
+      if(first){ ctx.moveTo(cx,cy); first=false; } else ctx.lineTo(cx,cy);
+    }
+    ctx.stroke();
+
+    // draw linear
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = '#06b6d4';
+    ctx.beginPath();
+    first = true;
+    for(let px = 0; px <= width; px++){
+      const x = view.xMin + (px / width) * (view.xMax - view.xMin);
+      const y = m*x + q;
+      const cx = toCanvasX(x);
+      const cy = toCanvasY(y);
+      if(first){ ctx.moveTo(cx,cy); first=false; } else ctx.lineTo(cx,cy);
+    }
+    ctx.stroke();
+
+    // highlight roots
+    ctx.fillStyle = '#ffd166';
+    roots.forEach(r => {
+      if(isFinite(r)){
+        const ry = a*r*r + b*r + c;
+        ctx.beginPath();
+        ctx.arc(toCanvasX(r), toCanvasY(ry), 5, 0, Math.PI*2);
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(0,0,0,0.12)';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      }
+    });
+
+    // highlight intersections
+    ctx.fillStyle = '#34d399';
+    // compute intersections again and plot
+    if(A === 0){
+      if(B !== 0){
+        const xi = -C / B;
+        const yi = m*xi + q;
+        ctx.beginPath(); ctx.arc(toCanvasX(xi), toCanvasY(yi), 5, 0, Math.PI*2); ctx.fill();
+      }
+    } else {
+      const D2 = B*B - 4*A*C;
+      if(D2 >= 0){
+        const i1 = (-B + Math.sqrt(D2)) / (2*A);
+        const i2 = (-B - Math.sqrt(D2)) / (2*A);
+        [i1,i2].forEach(xi => {
+          if(isFinite(xi)){
+            const yi = m*xi + q;
+            ctx.beginPath(); ctx.arc(toCanvasX(xi), toCanvasY(yi), 5, 0, Math.PI*2); ctx.fill();
+          }
+        });
+      }
+    }
+
+    // annotate vertex
+    if(isFinite(vx) && isFinite(vy) && a !== 0){
+      ctx.fillStyle = '#fff';
+      ctx.beginPath(); ctx.arc(toCanvasX(vx), toCanvasY(vy), 4.5, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,0.85)';
+      ctx.font = '12px Inter, Arial';
+      ctx.fillText('V', toCanvasX(vx)+8, toCanvasY(vy)-8);
+    }
+
+    ctx.restore();
+
+    // steps text
+    if(showSteps){
+      let s = '';
+      s += `Quadrática: y = ${a}x² + ${b}x + ${c}\n`;
+      s += `Δ = b² - 4ac = ${b}² - 4·${a}·${c} = ${delta.toFixed(4)}\n`;
+      s += `Raízes: ${rootsText}\n`;
+      if(isFinite(vx) && isFinite(vy) && a !== 0) s += `Vértice: (${vx.toFixed(4)}, ${vy.toFixed(4)})\n`;
+      s += `Interseção com y = ${m}x + ${q}: ${interText}\n`;
+      stepsEl.textContent = s;
+    } else {
+      stepsEl.textContent = `Δ = ${deltaEl.textContent} • Raízes = ${rootsEl.textContent} • Vértice = ${vertexEl.textContent}`;
+    }
+  }
+
+  // initial plot
+  plotFunctions();
+
+  // event listeners
+  plotBtn.addEventListener('click', () => {
+    modeLabel.textContent = 'Quadrática';
+    plotFunctions();
+    // small celebration: pulse trophy
+    pulseTrophy();
+  });
+
+  clearBtn.addEventListener('click', () => {
+    clear();
+    if(showGrid) drawGrid();
+    deltaEl.textContent = '—';
+    rootsEl.textContent = '—';
+    vertexEl.textContent = '—';
+    intersectEl.textContent = '—';
+    stepsEl.textContent = 'Gráfico limpo.';
+  });
+
+  toggleGridBtn.addEventListener('click', () => {
+    showGrid = !showGrid;
+    toggleGridBtn.classList.toggle('active');
+    plotFunctions();
+  });
+
+  showStepsBtn.addEventListener('click', () => {
+    showSteps = !showSteps;
+    showStepsBtn.textContent = showSteps ? 'Ocultar passos' : 'Mostrar passos';
+    plotFunctions();
+  });
+
+  // animate trophy: simple transform on SVG group
+  let animating = false;
+  function pulseTrophy(){
+    if(animating) return;
+    animating = true;
+    const g = document.getElementById('player');
+    let t = 0;
+    const dur = 900;
+    const start = performance.now();
+    function frame(now){
+      t = (now - start) / dur;
+      if(t > 1) t = 1;
+      // ease out bounce
+      const ease = Math.sin(t * Math.PI * 0.9) * (1 - t*0.6);
+      g.style.transform = `translateY(${ -8 * ease }px)`;
+      trophy.style.transform = `translateY(${ -6 * ease }px) rotate(${8 * ease}deg)`;
+      if(t < 1) requestAnimationFrame(frame);
+      else {
+        // settle
+        g.style.transform = '';
+        trophy.style.transform = '';
+        animating = false;
+      }
+    }
+    requestAnimationFrame(frame);
+  }
+
+  animateBtn.addEventListener('click', () => {
+    pulseTrophy();
+  });
+
+  // theme toggle (simple inversion)
+  themeBtn.addEventListener('click', () => {
+    themeDark = !themeDark;
+    if(!themeDark){
+      document.documentElement.style.setProperty('--bg','#f8fafc');
+      document.documentElement.style.setProperty('--card','#ffffff');
+      document.documentElement.style.setProperty('--accent','#0ea5e9');
+      document.documentElement.style.setProperty('--muted','#475569');
+      document.documentElement.style.setProperty('--glass-border','rgba(2,6,23,0.04)');
+    } else {
+      document.documentElement.style.setProperty('--bg','#0f1724');
+      document.documentElement.style.setProperty('--card','#0b1220');
+      document.documentElement.style.setProperty('--accent','#ffb703');
+      document.documentElement.style.setProperty('--muted','#94a3b8');
+      document.documentElement.style.setProperty('--glass-border','rgba(255,255,255,0.04)');
+    }
+  });
+
+  resetBtn.addEventListener('click', () => {
+    aEl.value = 1; bEl.value = 0; cEl.value = 0; mEl.value = 1; qEl.value = 0;
+    plotFunctions();
+  });
+
+  // keyboard shortcuts
+  window.addEventListener('keydown', (e) => {
+    if(e.key === 'Enter') plotFunctions();
+    if(e.key === 'g') { showGrid = !showGrid; plotFunctions(); }
+    if(e.key === 'a') pulseTrophy();
+  });
+
+  // responsive redraw
+  window.addEventListener('resize', () => {
+    // keep canvas CSS size but redraw
+    plotFunctions();
+  });
+
+  // small accessibility: focus outlines
+  document.querySelectorAll('button,input').forEach(el => {
+    el.addEventListener('focus', () => el.style.outline = '2px solid rgba(255,255,255,0.06)');
+    el.addEventListener('blur', () => el.style.outline = 'none');
+  });
+
+  // initial micro-animation for illustration
+  setTimeout(() => {
+    const conf = document.getElementById('confetti');
+    conf.style.transformOrigin = 'center';
+    conf.animate([{transform:'translateY(0)'},{transform:'translateY(6px)'},{transform:'translateY(0)'}],{duration:1200,iterations:Infinity,delay:200});
+  }, 600);
+
+})();
+</script>
+</body>
+</html>
